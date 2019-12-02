@@ -1,0 +1,5 @@
+{
+  "checkInterval": 600000,
+  "pageCount": 5,
+  "port": 3000
+}
