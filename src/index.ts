@@ -1,7 +1,7 @@
 import HttpHelper from "./class/helper/httpHelper";
 import UaHelper from "./class/helper/uaHelper";
 import * as consola from "consola";
-import {DOMParser} from "xmldom";
+import {JSDOM} from "jsdom";
 import BbsNewsModel from "./model/bbsNewsModel";
 import FileHelper from "./class/helper/fileHelper";
 import ConfigModel from "./model/configModel";
@@ -13,72 +13,74 @@ async function checkLoop(count?: number): Promise<void> {
         consola.info("Starting fetching news....");
         count = count === null ? 1 : count;
 
-        let tempArr = new Array<BbsNewsModel>();
+        let result: BbsNewsModel[] = [];
         for (let i = 1; i <= count; i++) {
             const header = {
                 "User-Agent": UaHelper.GetRandomUa()
             };
             const content = await HttpHelper.getRequest(`https://www.mcbbs.net/forum-news-${i}.html`, header, false).catch((err) => reject(err));
-            const parser = new DOMParser();
-            const dom = parser.parseFromString(content as string, "text/html");
+            const dom = new JSDOM(content as string, {contentType: "text/html"}).window.document;
             const newsListTable = dom.getElementById("threadlisttableid");
 
+            let preArr: ChildNode[] = [];
             for (let i = 0; i < newsListTable.childNodes.length; i++) {
-                let arr = newsListTable.childNodes[i].textContent.split("\n");
-                for (; ;) {
-                    const index = arr.indexOf("");
-                    if (index === -1)
-                        break;
+                const temp = newsListTable.childNodes[i].textContent.replace(/^\n*|\n*$/g, '');
+                if (temp && !temp.startsWith("隐藏置顶帖")) {
+                    if (temp.indexOf("预览") === -1)
+                        continue;
+                    if (temp.indexOf("]") === -1)
+                        continue;
+                    preArr.push(newsListTable.childNodes[i]);
+                }
+            }
 
-                    arr.splice(index, 1);
+            for (let i = 0; i < preArr.length; i++) {
+                let tempArr: ChildNode[] = [];
+                for (let j = 0; j < preArr[i].childNodes.length; j++) {
+                    const tempText = preArr[i].childNodes[j].textContent.replace(/^\n*|\n*$/g, '');
+                    if (!tempText)
+                        continue;
+                    tempArr.push(preArr[i].childNodes[j]);
                 }
 
-                if (arr.length === 0)
+                if (tempArr.length === 0)
                     continue;
 
-                let flag = false;
-                for (const content of arr) {
-                    if (content === "隐藏置顶帖") {
-                        flag = true;
-                        break
-                    }
+                for (let j = 0; j < tempArr.length; j++) {
+                    if (tempArr[j].childNodes.length < 5)
+                        continue;
+
+                    const threadId = tempArr[j].parentElement.getAttribute("id");
+                    const pageLinkEnd = threadId.substring(threadId.indexOf("thread")).replace("_", "-");
+                    const link = `https://www.mcbbs.net/${pageLinkEnd}-1-1.html`;
+
+                    let arr = tempArr[j].textContent.split("\n");
+                    arr = arr.filter(Boolean).filter(a => (a !== "New" && !a.startsWith(" ...")));
+
+                    if (arr.length === 0)
+                        continue;
+
+                    const previewIndex = arr.indexOf("预览");
+                    if (previewIndex === -1)
+                        continue;
+                    if (arr.length <= previewIndex + 4)
+                        continue;
+
+                    const typeIndex = arr[previewIndex + 1].indexOf("]");
+                    if (typeIndex === -1)
+                        continue;
+                    const type = arr[previewIndex + 1].substring(1, typeIndex);
+                    const title = arr[previewIndex + 1].substring(typeIndex + 1).trim();
+                    const author = arr[previewIndex + 2].trim();
+                    const time = arr[previewIndex + 3].trim();
+
+                    const news = new BbsNewsModel(type, title, time, author, link);
+                    result.push(news);
                 }
-
-                if (flag)
-                    continue;
-
-                const previewIndex = arr.indexOf("预览");
-                if (previewIndex === -1)
-                    continue;
-                if (arr.length <= previewIndex + 1)
-                    continue;
-
-                const typeIndex = arr[previewIndex + 1].indexOf("]");
-                if (typeIndex === -1)
-                    continue;
-
-                let removeArr = new Array<number>();
-                for (let i = 0; i < arr.length; i++) {
-                    if (arr[i] === "New" || arr[i].startsWith(" ..."))
-                        removeArr.push(i);
-                }
-
-                for (let i = removeArr.length - 1; i >= 0; i--) {
-                    arr.splice(removeArr[i], 1);
-                }
-
-                const type = arr[previewIndex + 1].substring(1, typeIndex);
-                const title = arr[previewIndex + 1].substring(typeIndex + 1).trimStart().trimEnd();
-
-                if (arr.length <= previewIndex + 3)
-                    continue;
-
-                const news = new BbsNewsModel(type, title, arr[previewIndex + 3], arr[previewIndex + 2]);
-                tempArr.push(news);
             }
         }
 
-            await FileHelper.writeFile(`${__dirname}/cache/news.json`, JSON.stringify(tempArr), "w+");
+        await FileHelper.writeFile(`${__dirname}/cache/news.json`, JSON.stringify(result), "w+");
         consola.success("Bbs news fetch succeeded");
     });
 }
@@ -106,6 +108,7 @@ async function entry(): Promise<void> {
             process.exit(-1);
         }
 
+        checkLoop(20);
         setInterval(checkLoop, config.checkInterval, config.pageCount);
     });
 }

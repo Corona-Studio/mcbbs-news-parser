@@ -3,7 +3,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "target": "esnext",
-    "lib": ["es2016", "esnext", "dom"],
+    "lib": ["es2016", "esnext"],
     "sourceMap": true,
     "noUnusedLocals": true,
     "experimentalDecorators": true,
