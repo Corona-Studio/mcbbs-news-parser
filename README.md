@@ -6,13 +6,14 @@ A small program used to get news from "https://www.mcbbs.net/forum-news-1.html",
 > Install
 
 ```
-  npm install
+  yarn install
+  rm -rf ./node_modules/consola/types
 ```
 
 > Build
 
 ```
-  npm run build
+  yarn build
 ```
 
 > Configuration
