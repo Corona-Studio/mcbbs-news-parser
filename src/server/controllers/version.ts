@@ -16,7 +16,7 @@ export class VersionApi {
             name: "Mcbbs news fetch server",
             version: process.env.version,
             description: process.env.description,
-            requestId: request.id
+            requestId: request.ip
         }
     }
 }

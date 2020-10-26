@@ -5,6 +5,6 @@ import {NotFound} from "ts-httpexceptions";
 @Middleware()
 export class NotFoundMiddleware {
     use(@Req() request: Express.Request, @Res() response: Express.Response) {
-        response.status(404).json(new NotFound(`Path not found, id: ${request.id}`));
+        response.status(404).json(new NotFound(`Path not found, ip: ${request.ip}`));
     }
 }

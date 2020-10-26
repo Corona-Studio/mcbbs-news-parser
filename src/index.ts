@@ -1,16 +1,16 @@
 import HttpHelper from "./class/helper/httpHelper";
 import UaHelper from "./class/helper/uaHelper";
-import * as consola from "consola";
+import * as Consola from "consola";
 import {JSDOM} from "jsdom";
 import BbsNewsModel from "./model/bbsNewsModel";
 import FileHelper from "./class/helper/fileHelper";
 import ConfigModel from "./model/configModel";
-import {ServerLoader} from "@tsed/common";
 import {Server} from "./server";
+import {PlatformExpress} from "@tsed/platform-express";
 
 async function checkLoop(count?: number): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
-        consola.info("Starting fetching news....");
+        Consola.info("Starting fetching news....");
         count = count === null ? 1 : count;
 
         let result: BbsNewsModel[] = [];
@@ -81,30 +81,30 @@ async function checkLoop(count?: number): Promise<void> {
         }
 
         await FileHelper.writeFile(`${__dirname}/cache/news.json`, JSON.stringify(result), "w+");
-        consola.success("Bbs news fetch succeeded");
+        Consola.success("Bbs news fetch succeeded");
     });
 }
 
 async function entry(): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
-        consola.start("Starting Mcbbs Fetch Server....");
-        consola.info("Reading config....");
+        Consola.start("Starting Mcbbs Fetch Server....");
+        Consola.info("Reading config....");
 
         if (!await FileHelper.isFileExists("../../config.json").catch(err => reject(err))) {
-            consola.error("Can not read file [config.json], please put this file to the path that same as [index.js] file!");
+            Consola.error("Can not read file [config.json], please put this file to the path that same as [index.js] file!");
             process.exit(-1);
         }
 
         let config: ConfigModel = JSON.parse(await FileHelper.readFile("../../config.json"));
-        consola.success("Fetching config succeeded");
+        Consola.success("Fetching config succeeded");
 
-        consola.info(`Starting api server on port: ${config.port}`);
+        Consola.info(`Starting api server on port: ${config.port}`);
         try {
-            const server = await ServerLoader.bootstrap(Server, {port: config.port});
+            const server = await PlatformExpress.bootstrap(Server, {port: config.port});
             await server.listen();
-            consola.success("Server initialized");
+            Consola.success("Server initialized");
         } catch (e) {
-            consola.error(e);
+            Consola.error(e);
             process.exit(-1);
         }
 
@@ -114,6 +114,6 @@ async function entry(): Promise<void> {
 }
 
 entry().catch((err) => {
-    consola.error("An unexpected error occurred during fetching news");
-    consola.error(err);
+    Consola.error("An unexpected error occurred during fetching news");
+    Consola.error(err);
 });

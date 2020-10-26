@@ -1,4 +1,4 @@
-import {GlobalAcceptMimesMiddleware, ServerLoader, ServerSettings} from "@tsed/common";
+import {Configuration, Inject, PlatformApplication} from "@tsed/common";
 import * as bodyParser from "body-parser";
 import * as compress from "compression";
 import * as methodOverride from "method-override";
@@ -6,7 +6,7 @@ import {NotFoundMiddleware} from "./server/middlewares/notFoundMiddleWare";
 
 const rootDir = `${__dirname}/server`;
 
-@ServerSettings({
+@Configuration({
     rootDir,
     acceptMimes: ["application/json"],
     mount: {
@@ -21,14 +21,19 @@ const rootDir = `${__dirname}/server`;
         requestFields: ["reqId", "method", "url", "headers", "query", "params", "duration"]
     },
 })
-export class Server extends ServerLoader {
+export class Server {
+    @Inject()
+    app: PlatformApplication;
+
+    @Configuration()
+    settings: Configuration;
+
     /**
      * This method let you configure the express middleware required by your application to works.
      * @returns {Server}
      */
     public $beforeRoutesInit(): void | Promise<any> {
-        this
-            .use(GlobalAcceptMimesMiddleware)
+        this.app
             .use(compress({}))
             .use(methodOverride())
             .use(bodyParser.json())
@@ -38,6 +43,6 @@ export class Server extends ServerLoader {
     }
 
     public $afterRoutesInit() {
-        this.use(NotFoundMiddleware);
+        this.app.use(NotFoundMiddleware);
     }
 }
