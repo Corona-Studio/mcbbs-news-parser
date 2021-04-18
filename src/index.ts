@@ -8,6 +8,13 @@ import ConfigModel from "./model/configModel";
 import {Server} from "./server";
 import {PlatformExpress} from "@tsed/platform-express";
 
+async function runCheckLoop(count?: number): Promise<void>{
+    checkLoop(count).catch(err => {
+        Consola.error("Failed to fetch news.")
+        Consola.error(err);
+    });
+}
+
 async function checkLoop(count?: number): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
         Consola.info("Starting fetching news....");
@@ -18,7 +25,9 @@ async function checkLoop(count?: number): Promise<void> {
             const header = {
                 "User-Agent": UaHelper.GetRandomUa()
             };
-            const content = await HttpHelper.getRequest(`https://www.mcbbs.net/forum-news-${i}.html`, header, false).catch((err) => reject(err));
+            const content = await HttpHelper.getRequest(`https://www.mcbbs.net/forum-news-${i}.html`, header, false).catch((err) => {
+                return reject(err);
+            });
             const dom = new JSDOM(content as string, {contentType: "text/html"}).window.document;
             const newsListTable = dom.getElementById("threadlisttableid");
 
@@ -108,8 +117,8 @@ async function entry(): Promise<void> {
             process.exit(-1);
         }
 
-        checkLoop(20);
-        setInterval(checkLoop, config.checkInterval, config.pageCount);
+        await runCheckLoop(20);
+        setInterval(runCheckLoop, config.checkInterval, config.pageCount);
     });
 }
 
