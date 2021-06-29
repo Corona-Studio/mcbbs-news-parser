@@ -1,4 +1,4 @@
-# mcbbs-news-parser
+# mcbbs-news-parser [obsolete]
 A small program used to get news from "https://www.mcbbs.net/forum-news-1.html", with rest apis.
 
 # How To Use
